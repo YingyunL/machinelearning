@@ -4,10 +4,9 @@ output: html_document
 ---
 
 ***
-Synopsis
---------
+### Synopsis
 
-In this report we try to predict the manners of exercises from recorded parameters. First, variables useful in prediction were selected from all the available variables using principle component analysis. A model was then built using a training data set with these variables. Cross validation was applied, and the out of sample error was estimated. Finally, the model was used to predict the manners of exercises for 20 cases of test data. 
+In this report we try to predict the manners of exercises from recorded parameters. After loading data and exploratory analysis, missing values are analyzed in the data set. Variables with all missing values in the test set are deleted. A preliminary model was built with all remaining variables using a subset of the data as the training set. From this first model, twenty important variables are selected for the final model. Cross validation was applied with the rest of the records as test data set, and the out of sample error was estimated to be about 0.16 percent. Finally, the model was used to predict the manners of exercises for 20 cases of test data. 
 
 ### Loading data and exploratory analysis
 
