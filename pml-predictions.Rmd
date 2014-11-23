@@ -1,0 +1,152 @@
+---
+title: "Prediction on the manner of exercises from recorded parameters"
+output: html_document
+---
+
+***
+Synopsis
+--------
+
+In this report we try to predict the manners of exercises from recorded parameters. First, variables useful in prediction were selected from all the available variables using principle component analysis. A model was then built using a training data set with these variables. Cross validation was applied, and the out of sample error was estimated. Finally, the model was used to predict the manners of exercises for 20 cases of test data. 
+
+### Loading data and exploratory analysis
+
+The [training data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) and [test data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv) are obtained from their linking websites using the download.file function in R. 
+
+```{r, cache=TRUE}
+# training data file
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv", method="curl")
+
+# test data file
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv", method="curl")
+
+# read both data files into R
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+```
+
+An examination of the structure of the data set is performed.
+
+```{r}
+dim(training)
+dim(testing)
+```
+
+```{r, results='hide'}
+names(training) # Results are not shown.
+names(testing) # Results are not shown.
+```
+
+Examination of the variable names indicated that the last variable name in the training and testing data sets are different.
+The rest of the variables names are shown to be identical:
+
+```{r}
+identical(names(training)[1:159], names(testing)[1:159])
+str(training$classe)
+levels(training$classe)
+testing$problem_id
+```
+
+### Analysis of missing values (NAs) in the data sets
+
+Are there any missing values in the data sets? If there is any, it should be addressed first before any further analysis. 
+
+```{r, results='hide'}
+numNAs <- sapply(training, function(x)sum(is.na(x))) # number of NAs in each variable in "training"
+numNAs # Results are not shown.
+numNAtest <- sapply(testing, function(x)sum(is.na(x))) # number of NAs in each variable in "testing"
+numNAtest # Results are not shown.
+```
+
+```{r}
+max(numNAs)
+max(numNAtest)
+```
+
+A look at the values of numNAs and numNAtest indicate that some variables in testing data set are wholely missing values, and some variables in training have predominantly missing values. Specifically, variables in the test data set either have no NAs or have all NA values. For the purpose of this project, the variables that are all NAs in the test data set are not useful, and we will delete these variables:
+
+```{r}
+testNAnames <- names(numNAtest[numNAtest==20]) # varaible names in testing that have only missing values
+trainNAnames <- names(numNAs[numNAs==19216]) # varaible names in training that have 19216 missing values
+length(testNAnames)
+length(trainNAnames)
+sum(!(trainNAnames %in% testNAnames)) # are there any NA variables in training not in testing
+testingnoNA <- subset(testing, select=-which(numNAtest==20)) # subset testing to delete variables with only NAs
+trainingnoNA <- subset(training, select=-which(numNAtest==20)) # subset training to the same variables as testing
+dim(testingnoNA)
+dim(trainingnoNA)
+```
+Now there should be no missing values in the trainingnoNA and testingnoNA data sets. Just to confirm this, 
+
+```{r}
+numNAs <- sapply(trainingnoNA, function(x)sum(is.na(x))) # number of NAs in each variable in "training"
+max(numNAs) # Results are not shown.
+numNAtest <- sapply(testingnoNA, function(x)sum(is.na(x))) # number of NAs in each variable in "testing"
+max(numNAtest) # Results are not shown.
+```
+The rest of the work will only deal with testingnoNA and trainingnoNA. To save memory, the rest of the data sets will be deleted:
+
+```{r}
+rm(training, testing, testNAnames, trainNAnames, numNAs, numNAtest)
+```
+
+### Feature selection
+
+To use cross validation when building the model, the trainingnoNA data set will be separate into groups. The rf method is initially used with all fetures to build the first model. 
+
+```{r, cache=TRUE}
+library(caret)
+set.seed(8899)
+intrain <- createDataPartition(y=trainingnoNA$classe, p=0.75, list=FALSE)
+training <- trainingnoNA[intrain,]
+testing <- trainingnoNA[-intrain,]
+modfit <- train(classe ~ ., method="rf", data=training)
+# pred <- predict(modfit, testing)
+```
+
+From the first model, the importance of features can be ranked. From this ranking, and removing apparently non-related features, twenty final features are selected.  
+
+
+```{r, cache=TRUE}
+features <- varImp(modfit) # importance of features in the model
+features
+featureindex <- features$importance 
+featureindex <- order(-featureindex[,1]) # index of features in the order of importance
+ordernames <- row.names(features$importance)[featureindex] # feature names in order of importance
+ordernames <- ordernames[-grep("timestamp", ordernames)] # remove timestamp features
+ordernames <- ordernames[-grep("user_name", ordernames)] # remove user_name features
+ordernames <- ordernames[-grep("X", ordernames)] # remove "X", which is unrelated to movements
+features <- ordernames[1:20]
+features # a list of the selected features
+```
+
+### Model building and prediction
+
+The final model is built with the chosen features using the random forest method (rf), and with 75 percent of the records in the training data set. 
+
+```{r, cache=TRUE}
+subtrain <- subset(training, select=c(features,"classe"))
+subtest <- subset(testing, select=c(features,"classe"))
+subtestnoNA <- subset(testingnoNA, select=c(features, "problem_id"))
+modfitrf <- train(classe ~ ., method="rf", data=subtrain)
+```
+
+Cross validation with the ramaining 25 percent of records:
+
+```{r}
+predrf <- predict(modfitrf, subtest) # predicted value for subtest
+predrftrue <- sapply(1:length(predrf), function(x)return(predrf[x]==subtest$classe[x])) 
+# logical vector : if predicted values match data values in subtest$classe
+sum(predrftrue) # number of matching values
+length(predrftrue) # total number of records in subtest
+sum(predrftrue)/length(predrftrue) # percent of matching values
+```
+The expected out of sample error is about 0.16 percent (1-sum(predrftrue)/length(predrftrue)). This model is then used to predict on the test data set of 20 records:
+
+```{r}
+pred20rf <- predict(modfitrf,subtestnoNA)
+pred20rf
+```
+
+
+
