@@ -56,9 +56,10 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 
 <hr />
-<div id="synopsis" class="section level2">
-<h2>Synopsis</h2>
-<p>In this report we try to predict the manners of exercises from recorded parameters. First, variables useful in prediction were selected from all the available variables using principle component analysis. A model was then built using a training data set with these variables. Cross validation was applied, and the out of sample error was estimated. Finally, the model was used to predict the manners of exercises for 20 cases of test data.</p>
+<div id="synopsis" class="section level3">
+<h3>Synopsis</h3>
+<p>In this report we try to predict the manners of exercises from recorded parameters. After loading data and exploratory analysis, missing values are analyzed in the data set. Variables with all missing values in the test set are deleted. A preliminary model was built with all remaining variables using a subset of the data as the training set. From this first model, twenty important variables are selected for the final model. Cross validation was applied with the rest of the records as test data set, and the out of sample error was estimated to be about 0.16 percent. Finally, the model was used to predict the manners of exercises for 20 cases of test data.</p>
+</div>
 <div id="loading-data-and-exploratory-analysis" class="section level3">
 <h3>Loading data and exploratory analysis</h3>
 <p>The <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">training data</a> and <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">test data</a> are obtained from their linking websites using the download.file function in R.</p>
@@ -203,7 +204,6 @@ sum(predrftrue) # number of matching values</code></pre>
 pred20rf</code></pre>
 <pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
 ## Levels: A B C D E</code></pre>
-</div>
 </div>
 
 
